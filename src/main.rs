@@ -74,7 +74,12 @@ async fn main() {
                             pb.inc(1);
                         }
                     }
-                    Err(e) => error!("Failed to encrypt file {}: {:?}", file_path, e),
+                    Err(e) => {
+                        error!("Failed to encrypt file {}: {:?}", file_path, e);
+                        if let Some(pb) = &pb {
+                            pb.inc(1);
+                        }
+                    }
                 }
             });
 
@@ -95,7 +100,7 @@ async fn main() {
                 pb.finish_with_message("All files encrypted.");
             }
         }
-        info!("All {} files in {} decrypted", files.len(),directory);
+        info!("All {} files in {} encrypted", files.len(),directory);
         println!("Key: {}", key);
     } else if args.decrypt && !args.encrypt {
         if args.key.is_none() {
@@ -128,10 +133,15 @@ async fn main() {
                         Ok(_) => {
                             info!("File {} decrypted successfully", file_path);
                             if let Some(pb) = &pb {
-                                pb.inc(1);  // Increment the progress bar
+                                pb.inc(1);
                             }
                         }
-                        Err(e) => error!("Failed to decrypt file {}: {:?}", file_path, e),
+                        Err(e) => {
+                            error!("Failed to decrypt file {}: {:?}", file_path, e);
+                            if let Some(pb) = &pb {
+                                pb.inc(1);
+                            }
+                        }
                     }
                 });
 
