@@ -1,6 +1,5 @@
 mod args;
-mod encrypt_file;
-mod decrypt_file;
+mod file;
 mod generate_key;
 
 use std::env;
@@ -26,6 +25,7 @@ fn main() {
     // Get all files in the directory
     let files = get_all_files(&directory);
     debug!("Files: {:?}", files);
+    debug!("Number of files: {}", files.len());
 
     // Create a temporary file in the system's temporary directory
     let temp_dir = env::temp_dir();
@@ -56,7 +56,7 @@ fn main() {
             let file_path = file.as_ref();
             let key_bytes = key.as_bytes();
             let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
-            match encrypt_file::encrypt_file(file_path, file_path, &key_array, &nonce, &temp_file_path) {
+            match file::encrypt(file_path, file_path, &key_array, &nonce, &temp_file_path) {
                 Ok(_) => info!("File {} encrypted successfully", file),
                 Err(e) => error!("Failed to encrypt file {}: {:?}", file, e),
             }
@@ -85,7 +85,7 @@ fn main() {
                 let file_path = file.as_ref();
                 let key_bytes = key.as_bytes();
                 let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
-                match decrypt_file::decrypt_file(file_path, file_path, &key_array, &nonce, &temp_file_path) {
+                match file::decrypt(file_path, file_path, &key_array, &nonce, &temp_file_path) {
                     Ok(_) => info!("File {} decrypted successfully", file),
                     Err(e) => error!("Failed to decrypt file {}: {:?}", file, e),
                 }
