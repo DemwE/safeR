@@ -28,10 +28,10 @@ async fn main() {
     debug!("Files: {:?}", files);
     debug!("Number of files: {}", files.len());
 
-    let pb = if !args.debug && args.progress {
+    let pb = if !args.debug && !args.progress {
         let pb = ProgressBar::new(files.len() as u64);
         pb.set_style(ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len}").unwrap()
+            .template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {eta}").unwrap()
             .progress_chars("#>-"));
         Some(pb)
     } else {
@@ -89,7 +89,7 @@ async fn main() {
             error!("Failed to encrypt some files: {:?}", e);
         }
 
-        if !args.debug && args.progress {
+        if !args.debug && !args.progress {
             if let Some(pb) = &pb {
                 // Finish the progress bar
                 pb.finish_with_message("All files encrypted.");
@@ -149,7 +149,7 @@ async fn main() {
 
             info!("All {} files in {} decrypted", files.len(),directory);
 
-            if !args.debug && args.progress {
+            if !args.debug && !args.progress {
                 if let Some(pb) = &pb {
                     // Finish the progress bar
                     pb.finish_with_message("All files decrypted.");

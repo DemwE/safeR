@@ -25,7 +25,7 @@ pub struct Args {
     /// Encrypt files
     #[clap(short = 'z', long = "encrypt")]
     pub encrypt: bool,
-    /// Show progress bar
+    /// Disable progress bar
     #[clap(short = 'p', long = "progressbar")]
     pub progress: bool,
 }
