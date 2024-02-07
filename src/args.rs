@@ -1,6 +1,6 @@
 use clap::{command, Parser};
 
-#[derive(Debug, Default, Parser)]
+#[derive(Debug, Default, Parser, Clone)]
 #[command(name = env!("CARGO_PKG_NAME"))]
 #[command(author = env!("CARGO_PKG_AUTHORS"))]
 #[command(version = env!("CARGO_PKG_VERSION"))]
