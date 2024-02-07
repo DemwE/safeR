@@ -10,3 +10,4 @@
 - Encrypts files in place, replacing the original file data with the encrypted data.
 - Handles errors gracefully, providing informative error messages.
 - Supports debug mode for detailed logging.
+- Provides a progress bar for the encryption process.
