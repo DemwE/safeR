@@ -2,15 +2,15 @@ mod args;
 mod file;
 mod generate_key;
 
-use std::env;
-use std::fs::File;
 use arrayref::array_ref;
 use clap::Parser;
 use log::{LevelFilter, info, debug, error};
 use walkdir::WalkDir;
 use sha2::{Sha256, Digest};
+use futures::future::try_join_all;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Initialize logger
     if args::Args::parse().debug {
         env_logger::builder().filter(None, LevelFilter::Debug).init();
@@ -26,13 +26,6 @@ fn main() {
     let files = get_all_files(&directory);
     debug!("Files: {:?}", files);
     debug!("Number of files: {}", files.len());
-
-    // Create a temporary file in the system's temporary directory
-    let temp_dir = env::temp_dir();
-    debug!("Temp dir: {:?}", temp_dir);
-    let temp_file_path = format!("{}safeR_TEMP", temp_dir.display());
-    debug!("Temp file path: {:?}", temp_file_path);
-    File::create(&temp_file_path).unwrap();
 
     if args.encrypt && !args.decrypt {
         if files.is_empty() {
@@ -51,18 +44,35 @@ fn main() {
         let nonce: [u8; 19] = array_ref![result, 0, 19].clone();
         debug!("Nonce: {:?}", nonce);
 
+        // Create a Vec to hold all the tasks
+        let mut tasks = Vec::new();
+
         // Encrypt all files
-        for file in &files {
-            let file_path = file.as_ref();
+        for file_path in files.clone() {
             let key_bytes = key.as_bytes();
             let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
-            match file::encrypt(file_path, file_path, &key_array, &nonce, &temp_file_path) {
-                Ok(_) => info!("File {} encrypted successfully", file),
-                Err(e) => error!("Failed to encrypt file {}: {:?}", file, e),
-            }
+
+            // Create a new task for each file
+            let task = tokio::spawn(async move {
+                match file::encrypt(&file_path, &file_path, &key_array, &nonce) {
+                    Ok(_) => info!("File {} encrypted successfully", file_path),
+                    Err(e) => error!("Failed to encrypt file {}: {:?}", file_path, e),
+                }
+            });
+
+            // Add the task to the Vec
+            tasks.push(task);
         }
 
-        info!("All files in {} encrypted", directory);
+        // Wait for all tasks to complete
+        let results = try_join_all(tasks).await;
+
+        // Handle errors (if any)
+        if let Err(e) = results {
+            error!("Failed to encrypt some files: {:?}", e);
+        }
+
+        info!("All {} files in {} decrypted", files.len(),directory);
         println!("Key: {}", key);
     } else if args.decrypt && !args.encrypt {
         if args.key.is_none() {
@@ -80,18 +90,35 @@ fn main() {
             let nonce: [u8; 19] = array_ref![result, 0, 19].clone();
             debug!("Nonce: {:?}", nonce);
 
+            // Create a Vec to hold all the tasks
+            let mut tasks = Vec::new();
+
             // Decrypt all files
-            for file in files {
-                let file_path = file.as_ref();
+            for file_path in files.clone() {
                 let key_bytes = key.as_bytes();
                 let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
-                match file::decrypt(file_path, file_path, &key_array, &nonce, &temp_file_path) {
-                    Ok(_) => info!("File {} decrypted successfully", file),
-                    Err(e) => error!("Failed to decrypt file {}: {:?}", file, e),
-                }
+
+                // Create a new task for each file
+                let task = tokio::spawn(async move {
+                    match file::decrypt(&file_path, &file_path, &key_array, &nonce) {
+                        Ok(_) => info!("File {} decrypted successfully", file_path),
+                        Err(e) => error!("Failed to encrypt file {}: {:?}", file_path, e),
+                    }
+                });
+
+                // Add the task to the Vec
+                tasks.push(task);
             }
 
-            info!("All files in {} decrypted", directory);
+            // Wait for all tasks to complete
+            let results = try_join_all(tasks).await;
+
+            // Handle errors (if any)
+            if let Err(e) = results {
+                error!("Failed to decrypt some files: {:?}", e);
+            }
+
+            info!("All {} files in {} decrypted", files.len(),directory);
         }
     } else {
         // Ask user to choose either encryption or decryption
@@ -110,4 +137,3 @@ fn get_all_files(directory: &str) -> Vec<String> {
         .map(|e| e.path().to_string_lossy().into_owned())
         .collect()
 }
-
