@@ -1,6 +1,6 @@
 [package]
 name = "safeR"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Mateusz Czarnecki (DemwE)"]
 description = "A simple and secure file encryption tool"
 license = "MIT"
