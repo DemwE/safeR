@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Mateusz Czarnecki (DemwE)"]
 description = "A simple and secure file encryption tool"
 license = "MIT"
+readme = "README.md"
 categories = ["command-line-utilities"]
 edition = "2021"
 

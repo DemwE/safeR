@@ -9,7 +9,6 @@ use arrayref::array_ref;
 use clap::Parser;
 use log::{LevelFilter, info, debug, error};
 use walkdir::WalkDir;
-
 use sha2::{Sha256, Digest};
 
 fn main() {
@@ -36,6 +35,12 @@ fn main() {
     File::create(&temp_file_path).unwrap();
 
     if args.encrypt && !args.decrypt {
+        if files.is_empty() {
+            error!("No files found in {}", directory);
+            println!("No files found in {}", directory);
+            return;
+        }
+
         let key = generate_key::generator();
         debug!("Key: {:?}", key);
 
@@ -47,7 +52,7 @@ fn main() {
         debug!("Nonce: {:?}", nonce);
 
         // Encrypt all files
-        for file in files {
+        for file in &files {
             let file_path = file.as_ref();
             let key_bytes = key.as_bytes();
             let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
@@ -59,14 +64,15 @@ fn main() {
 
         info!("All files in {} encrypted", directory);
         println!("Key: {}", key);
-    }
-    else if args.decrypt && !args.encrypt {
+    } else if args.decrypt && !args.encrypt {
         if args.key.is_none() {
             error!("Please provide a key to decrypt the files");
             println!("Please provide a key to decrypt the files -k <key>");
             return;
-        }else {
+        } else {
             let key = args.key.unwrap();
+            info!("Key: {}", key);
+
             let mut hasher = Sha256::new();
             hasher.update(key.as_bytes());
             let result = hasher.finalize();
@@ -74,7 +80,6 @@ fn main() {
             let nonce: [u8; 19] = array_ref![result, 0, 19].clone();
             debug!("Nonce: {:?}", nonce);
 
-            info!("Key: {}", key);
             // Decrypt all files
             for file in files {
                 let file_path = file.as_ref();
@@ -88,9 +93,7 @@ fn main() {
 
             info!("All files in {} decrypted", directory);
         }
-
-    }
-    else {
+    } else {
         // Ask user to choose either encryption or decryption
         error!("Please choose either encryption or decryption");
         println!("Please choose either encryption or decryption");
