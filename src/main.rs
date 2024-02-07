@@ -8,6 +8,7 @@ use log::{LevelFilter, info, debug, error};
 use walkdir::WalkDir;
 use sha2::{Sha256, Digest};
 use futures::future::try_join_all;
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[tokio::main]
 async fn main() {
@@ -26,6 +27,17 @@ async fn main() {
     let files = get_all_files(&directory);
     debug!("Files: {:?}", files);
     debug!("Number of files: {}", files.len());
+
+    let pb = if !args.debug && args.progress {
+        let pb = ProgressBar::new(files.len() as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len}").unwrap()
+            .progress_chars("#>-"));
+        Some(pb)
+    } else {
+        info!("Debug mode is enabled - progress bar will not be shown");
+        None
+    };
 
     if args.encrypt && !args.decrypt {
         if files.is_empty() {
@@ -51,11 +63,17 @@ async fn main() {
         for file_path in files.clone() {
             let key_bytes = key.as_bytes();
             let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
+            let pb = pb.clone();
 
             // Create a new task for each file
             let task = tokio::spawn(async move {
                 match file::encrypt(&file_path, &file_path, &key_array, &nonce) {
-                    Ok(_) => info!("File {} encrypted successfully", file_path),
+                    Ok(_) => {
+                        info!("File {} encrypted successfully", file_path);
+                        if let Some(pb) = &pb {
+                            pb.inc(1);
+                        }
+                    }
                     Err(e) => error!("Failed to encrypt file {}: {:?}", file_path, e),
                 }
             });
@@ -63,7 +81,6 @@ async fn main() {
             // Add the task to the Vec
             tasks.push(task);
         }
-
         // Wait for all tasks to complete
         let results = try_join_all(tasks).await;
 
@@ -72,6 +89,12 @@ async fn main() {
             error!("Failed to encrypt some files: {:?}", e);
         }
 
+        if !args.debug && args.progress {
+            if let Some(pb) = &pb {
+                // Finish the progress bar
+                pb.finish_with_message("All files encrypted.");
+            }
+        }
         info!("All {} files in {} decrypted", files.len(),directory);
         println!("Key: {}", key);
     } else if args.decrypt && !args.encrypt {
@@ -97,12 +120,18 @@ async fn main() {
             for file_path in files.clone() {
                 let key_bytes = key.as_bytes();
                 let key_array = <[u8; 32]>::try_from(&key_bytes[0..32]).unwrap();
+                let pb = pb.clone();
 
                 // Create a new task for each file
                 let task = tokio::spawn(async move {
                     match file::decrypt(&file_path, &file_path, &key_array, &nonce) {
-                        Ok(_) => info!("File {} decrypted successfully", file_path),
-                        Err(e) => error!("Failed to encrypt file {}: {:?}", file_path, e),
+                        Ok(_) => {
+                            info!("File {} decrypted successfully", file_path);
+                            if let Some(pb) = &pb {
+                                pb.inc(1);  // Increment the progress bar
+                            }
+                        }
+                        Err(e) => error!("Failed to decrypt file {}: {:?}", file_path, e),
                     }
                 });
 
@@ -119,6 +148,13 @@ async fn main() {
             }
 
             info!("All {} files in {} decrypted", files.len(),directory);
+
+            if !args.debug && args.progress {
+                if let Some(pb) = &pb {
+                    // Finish the progress bar
+                    pb.finish_with_message("All files decrypted.");
+                }
+            }
         }
     } else {
         // Ask user to choose either encryption or decryption
