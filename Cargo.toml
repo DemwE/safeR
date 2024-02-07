@@ -1,8 +1,9 @@
 [package]
 name = "safeR"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Mateusz Czarnecki (DemwE)"]
 description = "A simple and secure file encryption tool"
+repository = "https://github.com/DemwE/safeR"
 license = "MIT"
 readme = "README.md"
 categories = ["command-line-utilities"]
