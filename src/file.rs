@@ -1,4 +1,3 @@
-use std::env;
 use anyhow::anyhow;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -19,7 +18,7 @@ pub fn encrypt(
     const BUFFER_LEN: usize = 500;
     let mut buffer = [0u8; BUFFER_LEN];
 
-    let temp_file_path = temporary_file_creation();
+    let temp_file_path = temporary_file_creation(dist_file_path);
 
     {
         let mut source_file = File::open(source_file_path)?;
@@ -65,7 +64,7 @@ pub fn decrypt(
     const BUFFER_LEN: usize = 500 + 16;
     let mut buffer = [0u8; BUFFER_LEN];
 
-    let temp_file_path = temporary_file_creation();
+    let temp_file_path = temporary_file_creation(dist_file_path);
 
     {
         let mut encrypted_file = File::open(encrypted_file_path)?;
@@ -102,13 +101,12 @@ pub fn decrypt(
     Ok(())
 }
 
-fn temporary_file_creation() -> String {
+fn temporary_file_creation(file_path: &str) -> String {
     // Random key
     let key = generator();
-    // Create a temporary file in the system's temporary directory
-    let temp_dir = env::temp_dir();
-    let temp_file_path = format!("{}safeR_TEMP-{}", temp_dir.display(), key);
+    let temp_dir = file_path;
+    let temp_file_path = format!("{}safeR_TEMP-{}", temp_dir, key);
     debug!("Temp file path: {:?}", temp_file_path);
     File::create(&temp_file_path).unwrap();
-    return temp_file_path;
+    temp_file_path
 }

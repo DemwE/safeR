@@ -10,7 +10,7 @@ help_template = "{name} {version} {author-section} {about-with-newline} \n {all-
 )]
 pub struct Args {
     /// Directory to process
-    #[clap(default_value = "./")]
+    #[clap(default_value = "/")]
     #[clap(short = 'd', long = "dir")]
     pub directory: String,
     /// Activate debug mode
@@ -28,4 +28,8 @@ pub struct Args {
     /// Disable progress bar
     #[clap(short = 'p', long = "progressbar")]
     pub progress: bool,
+    /// Workers to use for encryption/decryption
+    #[clap(default_value = "256")]
+    #[clap(short = 'w', long = "workers")]
+    pub workers: usize,
 }
